@@ -1,14 +1,19 @@
 http_cp is a simple utility to copy files over HTTP.
 
 What this project IS:
-http_cp is primarily meant to be used inside a LAN/WLAN. The Purpose of this project is to enable two nodes on a local network to transfer files between them without the need for a USB-stick/Network drive/email etc etc.
+---------------------
+http_cp is primarily meant to be used inside a LAN/WLAN. The Purpose of this 
+project is to enable two nodes on a local network to transfer files between 
+them without the need for a USB-stick/Network drive/email etc etc.
 
 What this project is NOT:
+-------------------------
 * A file server
 * An HTTP server
 * A secure way of transferring information (note that encryption is not supported. The idea here is to keep it as simple and thin as possible)
 
 How it works:
+==============
 Suppose we want to copy a file from box A to box B. 
 Box A runs http_cp (see example #1) . Box B fires a web browser, fills Box A's address, port and the filename we want to copy in on the address line (Ex. #2).
 Box A will then send the file over.
@@ -16,40 +21,45 @@ Box A will then send the file over.
 In case box B has asked for a nonexistent filename, or no filename at all for that matter, box B will respond with a list of offered files, 
 from which box B can then choose. Once a file (any file) has been successfully copied http_cp will quit. 
 
-Installation:
+How to build:
+==============
 In the directory where the source is type:
 
-make all
+user@box-b> make all
 
-That's it. If everything has gone well you should find the executable "http_cp" in the same directory. please see "Usage" for further information on how to use it.
+That's it. If everything has gone well you should find the executable "http_cp" 
+in the same directory. please see "Usage" for further information on how to use
+it.
 
 The target 'debug' is also available, if you want to build with debug symbols.
-Please be sure to 'make clean' beforehand, in case object files without debugging symbols are already there.
+Please be sure to 'make clean' beforehand, in case object files without 
+debugging symbols are already in place.
 
-There is no 'make install' recipe. Just copy the executable 'http_cp' to wherever you like.
+There is no 'make install' recipe. Just copy the executable 'http_cp' to 
+wherever you like.
 
-Usage:
-http_cp [opt] <file1> [[file2] [file3 ] [...]] #Up to 10 files
-Available options are:
--v     verbose
--p     Port to listen on
--C     Do not stat() files until they are requested
 
-Examples:
+Examples
+==========
 
 Example #1
+
 # Offer the file file_to_send.txt 
-user@box-a>./http_cp file_to_send.txt	# This will listen on the default port 8080
+user@box-a>./http_cp file_to_send.txt	# Listens on default port 8080
 
 Example #2
+
 # Retrieve the file offered in example #1
-user@box-b>some_web_browser 'http://192.168.2.3:8080/file_to_send.txt' # This assumes box-a has the address 192.168.2.3
+# This assumes box-a has the address 192.168.2.3
+user@box-b>some_web_browser 'http://192.168.2.3:8080/file_to_send.txt' 
 
 Example #3
+
 # Specify filename with path and send on a different port:
 user@box-a>./http_cp -p 8081 /tmp/a/b/file_to_send.txt
 
 Example #4
+
 # Retrieve the file offered in example #3
 user@box-b>some_web_browser 'http://192.168.2.3:8081/tmp/a/b/file_to_send.txt'
 
