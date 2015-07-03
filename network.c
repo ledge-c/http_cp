@@ -8,6 +8,8 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/ioctl.h>
+#include <linux/if.h>
 #include "htfile.h"
 #include "http_str.h"
 
@@ -20,6 +22,7 @@ char *get_ip(struct sockaddr_in *addr);
 int net_init()
 {
     int htsock;
+    int rc;
     struct sockaddr_in localAddr;
     memset(&localAddr, '\0', sizeof(localAddr));
  
@@ -37,6 +40,21 @@ int net_init()
     if ((htsock = socket(PF_INET , SOCK_STREAM , 0)) == -1)
         RETERROR("socket() - %s\n", strerror(errno));
         
+    if (NULL != opts->ifname) /* specific interface requested by user */
+    {
+        printf("Using network interface: %s\n", opts->ifname);
+        rc = setsockopt(htsock, 
+                SOL_SOCKET, 
+                SO_BINDTODEVICE, 
+                opts->ifname, 
+                strlen(opts->ifname)
+        );
+        if (rc != 0)
+            die("Failed setting requested interface up for listening - %s\n",
+                strerror(errno)
+            );
+    }
+    
     if (bind(htsock, (struct sockaddr *)&localAddr, sizeof(localAddr)) != 0 )
         RETERROR("bind() - %s\n", strerror(errno));
 
@@ -263,3 +281,29 @@ unsigned int validate_port(const char *port_str)
     return(0);
 }
 
+const char *validate_if(char *ifname)
+{
+    int dummy_sock;
+    struct ifreq if_req;
+    
+    
+    if (strlen(optarg) > IFNAMSIZ)
+        die("Requested interface name is too long (max: %d chars)\n", IFNAMSIZ);
+    
+    /* Is the requested interface up? */
+    if ((dummy_sock = socket(PF_INET, SOCK_STREAM, 0)) == -1)
+    {
+        fprintf(stderr, "Call to socket() failed - %s\n", strerror(errno));
+        return(NULL);
+    }
+    memset(&if_req, 0, sizeof(if_req));
+    strncpy(if_req.ifr_name, ifname, IFNAMSIZ);
+    
+    if (ioctl(dummy_sock, SIOCGIFFLAGS, &if_req) < 0)
+        die("Failed accessing interface %s - %s\n", ifname, strerror(errno));
+    
+    if (!(if_req.ifr_flags & IFF_UP)) 
+        die("Interface %s is not up\n", ifname);
+    
+    return(strndup(ifname, IFNAMSIZ));
+}

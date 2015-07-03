@@ -8,10 +8,12 @@
 #include <netinet/in.h>
 #include <sys/stat.h>
 #include <signal.h>
-#include <getopt.h>
 
+#include <getopt.h>
 #include "htfile.h"
 #include "http_str.h"
+
+// Tag: Check DDNS
 
 inline _Bool check_file(char *filename);
 void prep_reply_text(char *str, size_t len);
@@ -22,7 +24,8 @@ int handle_connection(FILE* fp, const char *reply_error);
 unsigned int validate_port(const char *port_str);
 void sigint_handler(int sig);
 char *get_ip(struct sockaddr_in *addr);
-
+const char *validate_if(char *ifname);
+void free_am(void);
 s_options *opts;
 
 /* used by signal handler */
@@ -40,27 +43,32 @@ int main(int argc, char **argv)
     memset(opts,'\0',sizeof(s_options));
     opts->fcheck = 1; // Check files are available before setting up socket
     
-    int opt = getopt( argc, argv, "Cvc:p:" );
+    int opt = getopt( argc, argv, "Cvc:p:i:" );
 	while( opt != -1 )
 	{
 	    switch( opt ) {
                 case 'v':
-                        opts->verbose = 1;
-                        break;
+                    opts->verbose = 1;
+                    break;
                 case 'c':
-                        opts->count = *optarg;
-                        break;
+                    opts->count = *optarg;
+                    break;
                 case 'C':
-                        /* Don't check if files exist before listening */
-                        opts->fcheck = 0;
-                        break;
+                    /* Don't check if files exist before listening */
+                    opts->fcheck = 0;
+                    break;
                 case 'p':
-                        opts->port = validate_port(optarg);
-                        break;
+                    opts->port = validate_port(optarg);
+                    break;
+                case 'i':
+                    opts->ifname = (char *)validate_if(optarg);
+                    if (NULL == opts->ifname)
+                        die("Copying interface name failed - %s\n",strerror(errno));
+                    break;
                 default:
-                        die(USAGE_MSG, argv[0]);
+                    die(USAGE_MSG, argv[0]);
 	    };
-	    opt = getopt( argc, argv, "Cvc:p:" );
+	    opt = getopt( argc, argv, "Cvc:p:i:" );
 	}
     opts->files = argv + optind;
     opts->files_num = argc - optind;
@@ -149,9 +157,19 @@ int main(int argc, char **argv)
     if (close(htsock))
         fprintf(stderr, "Failed closing socket - %s", strerror(errno));
 
-    get_ip(NULL); /* Free IP address string memory */
+    free_am(); /* Free general purpose allocated memory */
     return(EXIT_SUCCESS); 
 } // main()
+
+void free_am(void)
+{
+    get_ip(NULL); /* Free IP address string memory */
+    if (opts->ifname != NULL)
+    {
+        free(opts->ifname);
+        opts->ifname = NULL;
+    }
+}
 
 void sigint_handler(int sig)
 {
@@ -165,8 +183,8 @@ void sigint_handler(int sig)
         status = close(*(conn_hdls.htsock_ptr));
         PRINTV("Closing socket (returned code: %d)\n", status);
     }
-        
-    get_ip(NULL); /* Free IP address string memory */
+    
+    free_am();
     exit(EXIT_FAILURE);
 }
 
