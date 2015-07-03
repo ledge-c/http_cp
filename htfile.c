@@ -13,8 +13,6 @@
 #include "htfile.h"
 #include "http_str.h"
 
-// Tag: Check DDNS
-
 inline _Bool check_file(char *filename);
 void prep_reply_text(char *str, size_t len);
 int net_init();
